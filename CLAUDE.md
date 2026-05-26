@@ -31,6 +31,10 @@ This repository is a reference implementation and documentation hub for setting 
 - Several patterns in the hooks are **macOS-specific** (`diskutil`, `pbcopy`, `/dev/disk*`). See `docs/hooks.md — Platform Notes` when adapting for Linux or Windows/WSL2.
 - **Commit messages use [Conventional Commits](https://www.conventionalcommits.org/).** Format: `<type>(<scope>): <description>` — e.g. `fix(hooks): expand non-Bash matchers`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`. Use `!` after the scope for breaking changes (e.g. `feat(hooks)!:`).
 
+## GitHub Interactions
+
+**Never use the `gh` CLI for GitHub operations** (issues, pull requests, comments, labels, reviews, etc.). Always use the configured GitHub MCP server tools (`mcp__github__*`) instead. The MCP server is the authorised integration for this repo.
+
 ## GitHub Issue Format
 
 **Title**: `[CRITICALITY] <concise summary>` — e.g. `[HIGH] Non-Bash tool matchers missing`. Criticality is `HIGH`, `MEDIUM`, or `LOW` based on blast radius and likelihood. Skip the prefix only when criticality genuinely doesn't apply (pure tracking issues, questions).
