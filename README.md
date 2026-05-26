@@ -32,7 +32,9 @@ This repo is a **security and best-practices setup** for Claude Code. It provide
 
 ## Quick Setup
 
-### Option A — Automated installer (recommended)
+### 1. Install hooks
+
+**Option A — Automated installer (recommended)**
 
 ```bash
 python3 install.py
@@ -58,21 +60,19 @@ python3 install.py --uninstall
 
 ---
 
-### Option B — Manual setup
+**Option B — Manual setup**
 
 <details>
 <summary>Expand manual steps</summary>
 
-**1. Copy hook scripts**
+Copy hook scripts:
 
 ```bash
 mkdir -p ~/.claude/hooks
 cp hooks/*.py ~/.claude/hooks/
 ```
 
-**2. Wire hooks in `~/.claude/settings.json`**
-
-Open `~/.claude/settings.json` (create it if it doesn't exist) and merge in:
+Wire hooks in `~/.claude/settings.json` (create it if it doesn't exist):
 
 ```json
 {
@@ -109,11 +109,11 @@ See `settings/settings.json.example` for the full recommended configuration.
 
 ---
 
-### 3. Verify hooks are active
+### 2. Verify hooks are active
 
 Start a Claude Code session and run `/hooks`. You should see three entries under `PreToolUse[Bash]` and `PostToolUse[Bash]`.
 
-### 4. Smoke-test the hooks
+### 3. Smoke-test the hooks
 
 ```bash
 echo '{"tool_input":{"command":"cat ~/.ssh/id_rsa"}}' | python3 ~/.claude/hooks/protect_secrets.py
