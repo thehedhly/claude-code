@@ -111,7 +111,12 @@ See `settings/settings.json.example` for the full recommended configuration.
 
 ### 2. Verify hooks are active
 
-Start a Claude Code session and run `/hooks`. You should see three entries under `PreToolUse[Bash]` and `PostToolUse[Bash]`.
+Start a Claude Code session and run:
+
+```
+/hooks
+# Expected: entries listed under PreToolUse[Bash] and PostToolUse[Bash]
+```
 
 ### 3. Smoke-test the hooks
 
