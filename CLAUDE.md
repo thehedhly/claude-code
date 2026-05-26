@@ -31,6 +31,44 @@ This repository is a reference implementation and documentation hub for setting 
 - Several patterns in the hooks are **macOS-specific** (`diskutil`, `pbcopy`, `/dev/disk*`). See `docs/hooks.md — Platform Notes` when adapting for Linux or Windows/WSL2.
 - **Commit messages use [Conventional Commits](https://www.conventionalcommits.org/).** Format: `<type>(<scope>): <description>` — e.g. `fix(hooks): expand non-Bash matchers`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`. Use `!` after the scope for breaking changes (e.g. `feat(hooks)!:`).
 
+## GitHub Issue Format
+
+**Title**: `[CRITICALITY] <concise summary>` — e.g. `[HIGH] Non-Bash tool matchers missing`. Criticality is `HIGH`, `MEDIUM`, or `LOW` based on blast radius and likelihood. Skip the prefix only when criticality genuinely doesn't apply (pure tracking issues, questions).
+
+**Labels** (apply both — they answer different questions):
+- **Criticality** (exactly one): `criticality:high`, `criticality:medium`, `criticality:low`.
+- **Topical** (one or more): `security`, `hooks`, `prompt-injection`, `ux`, `docs`, `false-positive`, `mcp`, `installer`, etc. Create new labels only when an existing one doesn't fit.
+
+**Body sections** (in this order; omit any that don't apply):
+
+```markdown
+## Description
+What's wrong / missing. Lead with the concrete failure or bypass — show the actual command, payload, or scenario that demonstrates the gap. Quote relevant file:line references using markdown links (e.g. [`protect.py:36`](hooks/protect.py#L36)).
+
+## Why this matters
+One paragraph on real-world impact. Skip if obvious from Description.
+
+## Potential solution
+Concrete implementation sketch — code blocks, tables, regex patterns, settings.json snippets. Not "we should refactor X"; show the change. If multiple approaches exist, list them with trade-offs and recommend one.
+
+## Out of scope
+What you're explicitly not addressing here and which issue/PR tracks it. Prevents scope creep during implementation.
+
+## Test additions
+Concrete test cases the fix should add — input → expected outcome table works well.
+
+---
+Source: <where the finding came from — audit doc, PR review, surfaced during #N, etc.>
+```
+
+**Conventions inside the body**:
+- Use markdown tables for enumerating patterns, paths, or matrix-style data.
+- Use checklist syntax (`- [ ]`) only for test plans in PRs, not in issues.
+- Reference other issues/PRs as `#N` — GitHub auto-links them.
+- For findings that came from a structured audit (e.g. `Best-practice-audit-classified-by-criticality.txt`), include the source line in the footer so the issue is traceable back to the analysis.
+
+**When closing**: use `state_reason: completed` (fixed), `not_planned` (won't do), or `duplicate` (link via `duplicate_of`). Never close without a reason.
+
 ## Hook Contract
 
 Claude Code passes tool context as JSON on stdin to each hook. For `PreToolUse[Bash]`:
