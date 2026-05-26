@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Personal project override. Copy to <project>/.claude/settings.local.json.",
+    "CRITICAL: This file MUST be git-ignored. Add the following line to .gitignore:",
+    "  .claude/settings.local.json",
+    "This file overrides settings.json for your machine only. Never commit it."
+  ],
+  "model": "opus",
+  "_comment_model": "Personal override: use Opus locally while the team default (settings.json) is Sonnet.",
+  "effortLevel": "high",
+  "mcpServers": {
+    "_comment": "Personal MCP server not used by the rest of the team — keep it here, not in settings.json.",
+    "my-local-db": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@my-scope/local-db-server@2.1.0"],
+      "env": {
+        "DB_URL": "${LOCAL_DEV_DB_URL}"
+      }
+    }
+  }
+}

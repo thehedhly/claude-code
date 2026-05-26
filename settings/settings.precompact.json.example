@@ -1,0 +1,70 @@
+{
+  "_comment": "Global settings with all security hooks AND the PreCompact audit hook wired. Copy to ~/.claude/settings.json. Replace /your/home with the output of: echo $HOME",
+  "permissions": {
+    "defaultMode": "default"
+  },
+  "model": "sonnet",
+  "effortLevel": "high",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Blocks dangerous deletions and git push --force",
+            "command": "python3 /your/home/.claude/hooks/protect.py"
+          },
+          {
+            "type": "command",
+            "_comment": "Blocks credential file reads, exfil commands, and secret literals",
+            "command": "python3 /your/home/.claude/hooks/protect_secrets.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Blocks @latest in MCP server args when Claude edits a settings file",
+            "command": "python3 /your/home/.claude/hooks/protect_mcp_config.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Blocks @latest in MCP server args when Claude writes a settings file",
+            "command": "python3 /your/home/.claude/hooks/protect_mcp_config.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Scrubs secrets from tool output before Claude sees it",
+            "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Logs compact events (trigger type + custom instructions) before conversation history is replaced. See docs/hooks.md for the precompact_log.py snippet.",
+            "command": "python3 /your/home/.claude/hooks/precompact_log.py"
+          }
+        ]
+      }
+    ]
+  }
+}
