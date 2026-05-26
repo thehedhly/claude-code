@@ -174,6 +174,60 @@ The entire output is blocked when a match is found — Claude sees the block rea
 
 ---
 
+### `detect_injection.py` — Prompt-Injection Detector
+
+**Event:** `PostToolUse` on `WebFetch` and `mcp__.*`
+
+Surfaces likely prompt-injection markers in tool returns from untrusted sources. The two wired matchers cover the canonical injection vectors: web pages fetched into context and MCP tool responses (which often pull from external systems — Jira tickets, GitHub issues, docs search results, etc.).
+
+**Default mode is `warn`, not `block`.** Real content discussing prompt injection — security research articles, jailbreak datasets, the issue tracker for this repo — will match these patterns legitimately. Warning surfaces the detection without throwing away the entire tool result.
+
+#### Mode control
+
+Set via the `DETECT_INJECTION_MODE` environment variable:
+
+| Mode | Behavior |
+|---|---|
+| `off` | Script exits 0, no scan. Use for sessions intentionally browsing adversarial content. |
+| `warn` (default) | Emits `{"decision": "warn", ...}` on match. Claude still sees the output, but the user gets a flag. |
+| `block` | Emits `{"decision": "block", ...}` on match. Use for sessions in high-trust automation contexts where no false positive is acceptable. |
+
+Every detection is logged via `hook_logger.py` (event type `posttool_injection`) regardless of mode — so you can audit what the warn mode is catching even when the user doesn't notice it.
+
+#### Patterns
+
+| Pattern | What it catches |
+|---|---|
+| `(?i)ignore\s+(all\|the\|prior\|previous\|earlier\|above)\s+instructions/prompts/directives` | Classic instruction override |
+| `(?i)disregard\s+…\s+(prior\|earlier\|previous)\s+instructions` | Override variant |
+| `(?i)forget\s+(everything\|all\s+(prior\|previous))` | Memory wipe attempt |
+| `(?i)you\s+are\s+now\s+(a\|an)\s+\w+` | Role reassignment ("you are now a system administrator…") |
+| `<\|im_start\|>`, `<\|system\|>`, `<\|user\|>`, `<\|assistant\|>` | OpenAI chat-template tokens |
+| `[INST]`, `[/INST]`, `<<SYS>>`, `<</SYS>>` | Llama / Mistral instruction tokens |
+| `(?i)new\s+(system\s+)?(prompt\|message\|instructions\|task):` | Fake new-instructions header |
+| `(?i)^system\s*:\s*(you\s+are\|new\s+task\|you\s+must)` | Fake system role prefix at line start |
+| `(?i)(execute\|run\|perform)\s+(the\s+)?following\s+(command\|code\|instructions)` | Execute-following directive |
+| `[A-Za-z0-9+/=]{200,}` | Inline base64 blob ≥200 chars (possible hidden payload) |
+
+#### Wire in `settings.json`
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "WebFetch", "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/detect_injection.py" }] },
+      { "matcher": "mcp__.*",  "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/detect_injection.py" }] }
+    ]
+  }
+}
+```
+
+`install.py` wires this automatically alongside `protect_output.py` on the same matchers.
+
+> **Tuning false positives:** If you regularly fetch security content or work in this repo (which discusses these patterns), expect occasional warns. The right responses are (a) ignore individual warns when you've inspected the source, (b) set `DETECT_INJECTION_MODE=off` for the session, or (c) remove specific patterns from the script if a single pattern is dominating noise. Do not blanket-disable; the surface is too useful to lose.
+
+---
+
 ### `hook_logger.py` — Shared Audit Logger
 
 Utility module imported by all three hooks above. Appends JSONL to:

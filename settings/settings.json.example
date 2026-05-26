@@ -121,6 +121,11 @@
             "type": "command",
             "_comment": "Scrubs secrets from fetched web content (note: JWT pattern may false-positive on legitimate API tokens)",
             "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          },
+          {
+            "type": "command",
+            "_comment": "Surfaces prompt-injection markers in fetched web content (default: warn; set DETECT_INJECTION_MODE=block to block, =off to disable)",
+            "command": "python3 /your/home/.claude/hooks/detect_injection.py"
           }
         ]
       },
@@ -131,6 +136,11 @@
             "type": "command",
             "_comment": "Scrubs secrets from any MCP tool response",
             "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          },
+          {
+            "type": "command",
+            "_comment": "Surfaces prompt-injection markers in MCP tool responses",
+            "command": "python3 /your/home/.claude/hooks/detect_injection.py"
           }
         ]
       }
