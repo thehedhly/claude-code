@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Git pre-commit hook: checks staged settings files for @latest in MCP server args.
+#
+# Install (copy):
+#   cp hooks/git-hooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+# Install (symlink — stays in sync with the repo):
+#   ln -sf ../../hooks/git-hooks/pre-commit .git/hooks/pre-commit
+#
+# To apply globally across all repos:
+#   git config --global core.hooksPath ~/.config/git/hooks
+#   mkdir -p ~/.config/git/hooks
+#   cp hooks/git-hooks/pre-commit ~/.config/git/hooks/pre-commit
+#   chmod +x ~/.config/git/hooks/pre-commit
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+VALIDATOR="${REPO_ROOT}/hooks/validate-mcp.py"
+
+if [ ! -f "$VALIDATOR" ]; then
+    # Validator not present — skip silently so the hook doesn't break other repos.
+    exit 0
+fi
+
+python3 "$VALIDATOR" --staged

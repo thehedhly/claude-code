@@ -1,0 +1,33 @@
+{
+  "_comment": "Project-level settings. Copy to <project>/.claude/settings.json and commit. Do NOT put tokens or credentials here — use settings.local.json for personal overrides.",
+  "permissions": {
+    "_comment": "Looser than the global default — file edits are auto-approved in this project.",
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(npm run test)",
+      "Bash(npm run test:*)",
+      "Bash(npx jest *)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log *)"
+    ],
+    "deny": [
+      "Bash(curl *)",
+      "Bash(wget *)"
+    ]
+  },
+  "model": "sonnet",
+  "effortLevel": "medium",
+  "mcpServers": {
+    "_comment": "Project-scoped MCP server. Pinned version — never use @latest in committed config.",
+    "project-db": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@my-scope/db-mcp-server@1.4.2"],
+      "env": {
+        "_comment": "Reference an environment variable set outside Claude Code — do not hard-code values.",
+        "DB_URL": "${PROJECT_DB_URL}"
+      }
+    }
+  }
+}
