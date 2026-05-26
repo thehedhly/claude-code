@@ -1,5 +1,7 @@
 # Claude Code — Security & Best Practices Setup
 
+![Without this setup, Claude Code can leak credentials and run dangerous commands. With it, the hooks step in before anything risky happens.](resources/readme-overview.png)
+
 Claude Code is Anthropic's AI coding assistant. It reads your files, edits your code, and runs commands on your machine. That's powerful, and it's also where things can go wrong:
 
 - It might read files it shouldn't — the private keys you use to log into servers, or your cloud credentials.
