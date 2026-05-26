@@ -1,8 +1,16 @@
 # Claude Code — Security & Best Practices Setup
 
-A reference implementation for setting up Claude Code securely, following Anthropic's guidelines. Contains pre-built security hooks, settings templates, and detailed documentation.
+![Without this setup, Claude Code can leak credentials and run dangerous commands. With it, the hooks step in before anything risky happens.](resources/readme-overview.png)
 
-> **Platform note:** This setup was tested on **macOS**. It should work on Linux with minor adjustments — see [Platform differences](#platform-differences) below. Windows (WSL2) is untested.
+Claude Code is Anthropic's AI coding assistant. It reads your files, edits your code, and runs commands on your machine. That's powerful, and it's also where things can go wrong:
+
+- It might read files it shouldn't — the private keys you use to log into servers, or your cloud credentials.
+- It might run commands you didn't mean — delete files, push broken code, wipe a disk.
+- It might be tricked by something it read — a web page or document that quietly tells it to do things you didn't ask for.
+
+This repo is a **security and best-practices setup** for Claude Code. It provides security hooks that block risky actions before they execute, and guidance on permissions, MCP servers, and safe workflows — so you're covered both technically and operationally when using Claude Code on a real machine.
+
+> **⚠️ Platform note:** Tested on **macOS**. Works on Linux with minor adjustments — see [Platform differences](#platform-differences) below. Windows (WSL2) is untested.
 
 ## What's Included
 
@@ -24,7 +32,9 @@ A reference implementation for setting up Claude Code securely, following Anthro
 
 ## Quick Setup
 
-### Option A — Automated installer (recommended)
+### 1. Install hooks
+
+**Option A — Automated installer (recommended)**
 
 ```bash
 python3 install.py
@@ -50,21 +60,19 @@ python3 install.py --uninstall
 
 ---
 
-### Option B — Manual setup
+**Option B — Manual setup**
 
 <details>
 <summary>Expand manual steps</summary>
 
-**1. Copy hook scripts**
+Copy hook scripts:
 
 ```bash
 mkdir -p ~/.claude/hooks
 cp hooks/*.py ~/.claude/hooks/
 ```
 
-**2. Wire hooks in `~/.claude/settings.json`**
-
-Open `~/.claude/settings.json` (create it if it doesn't exist) and merge in:
+Wire hooks in `~/.claude/settings.json` (create it if it doesn't exist):
 
 ```json
 {
@@ -101,11 +109,16 @@ See `settings/settings.json.example` for the full recommended configuration.
 
 ---
 
-### 3. Verify hooks are active
+### 2. Verify hooks are active
 
-Start a Claude Code session and run `/hooks`. You should see three entries under `PreToolUse[Bash]` and `PostToolUse[Bash]`.
+Start a Claude Code session and run:
 
-### 4. Smoke-test the hooks
+```
+/hooks
+# Expected: entries listed under PreToolUse[Bash] and PostToolUse[Bash]
+```
+
+### 3. Smoke-test the hooks
 
 ```bash
 echo '{"tool_input":{"command":"cat ~/.ssh/id_rsa"}}' | python3 ~/.claude/hooks/protect_secrets.py
@@ -133,22 +146,33 @@ echo '{"tool_output":"AKIAIOSFODNN7EXAMPLE"}}' | python3 ~/.claude/hooks/protect
 
 ## Settings Hierarchy
 
-Claude Code merges settings in this order (later entries win):
+Claude Code merges settings in this order — later entries win:
 
-```
-~/.claude/settings.json          # global — applies to every project
-<project>/.claude/settings.json  # project — committed to the repo
-<project>/.claude/settings.local.json  # personal project override — git-ignored
+```mermaid
+flowchart TD
+    A["🌍 Global\n~/.claude/settings.json\nApplies to every project"]
+    B["📁 Project\n&lt;project&gt;/.claude/settings.json\nCommitted to the repo"]
+    C["👤 Personal override\n&lt;project&gt;/.claude/settings.local.json\nGit-ignored, never committed"]
+    M["⚙️ Final merged settings\nConflicts resolved — highest priority wins"]
+
+    A -->|"priority 1 — lowest"| M
+    B -->|"priority 2 — overrides global"| M
+    C -->|"priority 3 — highest"| M
+
+    style A fill:#1e3a5f,color:#ffffff,stroke:#4a90d9
+    style B fill:#1e4d2b,color:#ffffff,stroke:#4caf50
+    style C fill:#4d2b1e,color:#ffffff,stroke:#e07b39
+    style M fill:#2d2d2d,color:#ffffff,stroke:#888888
 ```
 
-Put security hooks in the **global** file so they apply everywhere, regardless of project settings.
+> **🔒 Security rule:** Put security hooks in the **global** file (`~/.claude/settings.json`) so they apply to every project and cannot be overridden or omitted by project-level settings.
 
-Add `.claude/settings.local.json` to your global `.gitignore` — it contains personal overrides that must never be committed:
-
-```
-echo '.claude/settings.local.json' >> ~/.gitignore_global
-git config --global core.excludesfile ~/.gitignore_global
-```
+> **⚠️ Warning:** `.claude/settings.local.json` contains personal overrides and must **never** be committed to version control. Add it to your global `.gitignore`:
+>
+> ```bash
+> echo '.claude/settings.local.json' >> ~/.gitignore_global
+> git config --global core.excludesfile ~/.gitignore_global
+> ```
 
 ---
 
