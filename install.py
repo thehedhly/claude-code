@@ -41,10 +41,20 @@ HOOK_SCRIPTS = [
 # Each entry: (event, matcher, [scripts])
 # Hooks are upserted by script filename — safe to re-run after adding new scripts.
 WIRED_HOOKS: list[tuple[str, str, list[str]]] = [
-    ("PreToolUse",  "Bash",  ["protect.py", "protect_secrets.py"]),
-    ("PostToolUse", "Bash",  ["protect_output.py"]),
-    ("PreToolUse",  "Edit",  ["protect_mcp_config.py"]),
-    ("PreToolUse",  "Write", ["protect_mcp_config.py"]),
+    # PreToolUse — input-side enforcement
+    ("PreToolUse",  "Bash",      ["protect.py", "protect_secrets.py"]),
+    ("PreToolUse",  "Read",      ["protect_secrets.py"]),
+    ("PreToolUse",  "Edit",      ["protect_secrets.py", "protect_mcp_config.py"]),
+    ("PreToolUse",  "Write",     ["protect_secrets.py", "protect_mcp_config.py"]),
+    ("PreToolUse",  "MultiEdit", ["protect_secrets.py"]),
+    # PostToolUse — output-side scrubber. Runs the same script across every
+    # tool that can return text Claude will ingest.
+    ("PostToolUse", "Bash",      ["protect_output.py"]),
+    ("PostToolUse", "Read",      ["protect_output.py"]),
+    ("PostToolUse", "Edit",      ["protect_output.py"]),
+    ("PostToolUse", "Write",     ["protect_output.py"]),
+    ("PostToolUse", "WebFetch",  ["protect_output.py"]),
+    ("PostToolUse", "mcp__.*",   ["protect_output.py"]),
 ]
 
 # ---------------------------------------------------------------------------

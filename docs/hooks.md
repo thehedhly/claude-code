@@ -79,9 +79,23 @@ Blocks the following patterns (case-insensitive regex on `tool_input.command`):
 
 ### `protect_secrets.py` — Credential Exfiltration Guard
 
-**Event:** `PreToolUse` on `Bash`
+**Event:** `PreToolUse` on `Bash`, `Read`, `Write`, `Edit`, `MultiEdit`
 
-Three independent detection layers:
+The script branches on `tool_name` so the same enforcement applies whether Claude opens a shell, reads a file directly via the `Read` tool, or writes content via `Write`/`Edit`/`MultiEdit`. A non-Bash matcher is required because the `Read` tool bypasses the shell entirely — a hook bound only to `Bash` cannot see `Read("/Users/x/.ssh/id_rsa")`.
+
+| `tool_name` | Inspects | Blocks when |
+|---|---|---|
+| `Bash` | `tool_input.command` | sensitive-path read/copy verbs, exfil patterns with sensitive paths, or secret literals in the command |
+| `Read` | `tool_input.file_path` | path resolves to a credential-store dir or a project-local secret file |
+| `Write` | `tool_input.file_path` and `tool_input.content` | path is a credential store, or content contains a secret literal |
+| `Edit` | `tool_input.file_path` and `tool_input.new_string` | same as Write |
+| `MultiEdit` | `tool_input.file_path` and each `edits[*].new_string` | same as Write, applied per edit |
+
+Unknown `tool_name` is a pass-through (`exit 0`). The matcher list in `settings.json` is the gate; the script defends against a misconfigured matcher rather than enforcing on every tool unconditionally.
+
+**Bash-mode detection layers (unchanged)**
+
+Three independent detection layers apply to `tool_name == "Bash"`:
 
 **1. Sensitive path reads**
 
@@ -120,11 +134,28 @@ Blocked regardless of path context if the command itself contains:
 | `xox[baprs]-[A-Za-z0-9-]{10,}` | Slack token |
 | `sk_live_[A-Za-z0-9]{10,}` | Stripe live API key |
 
+**Path-mode detection (Read / Write / Edit / MultiEdit)**
+
+For non-Bash tools the script does a basename/path check rather than command-string parsing:
+
+| File path matches | Outcome |
+|---|---|
+| Contains `/.ssh/`, `/.aws/`, `/.config/gcloud/`, `/.kube/`, `/.azure/` (anywhere) | Always blocked — home credential dirs are not allowlistable. |
+| Basename is exactly `.env`, `.npmrc`, `.pypirc`, `.netrc` | Blocked unless inside a sample/fixture path. |
+| Basename matches `.env.<suffix>` where suffix ∉ {`example`, `sample`, `template`, `dist`} | Blocked. |
+| Path contains `/examples/`, `/docs/examples/`, or `/fixtures/` (and is not a home credential dir) | Allowlisted. |
+
+For `Write`/`Edit`/`MultiEdit`, the `content` / `new_string` is also scanned against the same `SECRET_LITERAL_PATTERNS` as Bash — so Claude cannot launder a secret literal by writing it to an arbitrary file.
+
 ---
 
 ### `protect_output.py` — Output Scrubber
 
-**Event:** `PostToolUse` on `Bash`
+**Event:** `PostToolUse` on `Bash`, `Read`, `Write`, `Edit`, `WebFetch`, `mcp__.*`
+
+The same script is wired across every tool that returns text Claude will ingest. The `Bash`-only wiring used in earlier versions missed file content read via `Read`, content fetched via `WebFetch`, and any output from MCP servers — all of which are common credential-leak surfaces.
+
+> ⚠️ The JWT-like pattern (`eyJ...`) may false-positive against legitimate API responses returned by MCP servers or `WebFetch`. If the noise outweighs the value, narrow that pattern in `protect_output.py` or remove the `WebFetch` / `mcp__.*` matchers from `settings.json`. Issue #5 tracks switching to redaction-in-place to eliminate the all-or-nothing failure mode.
 
 Scans the full tool output text before Claude's context receives it. Blocks on:
 
@@ -296,7 +327,7 @@ mkdir -p ~/.claude/hooks
 cp hooks/*.py ~/.claude/hooks/
 ```
 
-Then add to `~/.claude/settings.json` (note: `~` is **not** expanded — use the full path from `echo $HOME`):
+Then add to `~/.claude/settings.json` (note: `~` is **not** expanded — use the full path from `echo $HOME`). The full recommended wiring is in [`settings/settings.json.example`](../settings/settings.json.example); the minimum is:
 
 ```json
 {
@@ -308,6 +339,32 @@ Then add to `~/.claude/settings.json` (note: `~` is **not** expanded — use the
           { "type": "command", "command": "python3 /your/home/.claude/hooks/protect.py" },
           { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_secrets.py" }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_secrets.py" }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_secrets.py" },
+          { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_mcp_config.py" }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_secrets.py" },
+          { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_mcp_config.py" }
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_secrets.py" }
+        ]
       }
     ],
     "PostToolUse": [
@@ -316,7 +373,12 @@ Then add to `~/.claude/settings.json` (note: `~` is **not** expanded — use the
         "hooks": [
           { "type": "command", "command": "python3 /your/home/.claude/hooks/protect_output.py" }
         ]
-      }
+      },
+      { "matcher": "Read",     "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/protect_output.py" }] },
+      { "matcher": "Edit",     "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/protect_output.py" }] },
+      { "matcher": "Write",    "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/protect_output.py" }] },
+      { "matcher": "WebFetch", "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/protect_output.py" }] },
+      { "matcher": "mcp__.*",  "hooks": [{ "type": "command", "command": "python3 /your/home/.claude/hooks/protect_output.py" }] }
     ]
   }
 }
