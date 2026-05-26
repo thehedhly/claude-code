@@ -29,6 +29,7 @@ This repository is a reference implementation and documentation hub for setting 
 - When adding a detection pattern to a hook script, add a corresponding entry to `docs/hooks.md` and note whether the pattern is platform-specific.
 - Validate any JSON snippet with `python3 -m json.tool` before committing.
 - Several patterns in the hooks are **macOS-specific** (`diskutil`, `pbcopy`, `/dev/disk*`). See `docs/hooks.md — Platform Notes` when adapting for Linux or Windows/WSL2.
+- **Commit messages use [Conventional Commits](https://www.conventionalcommits.org/).** Format: `<type>(<scope>): <description>` — e.g. `fix(hooks): expand non-Bash matchers`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`. Use `!` after the scope for breaking changes (e.g. `feat(hooks)!:`).
 
 ## Hook Contract
 
