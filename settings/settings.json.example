@@ -23,8 +23,23 @@
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Blocks Read of credential-store paths (~/.ssh/, ~/.aws/, .env, etc.)",
+            "command": "python3 /your/home/.claude/hooks/protect_secrets.py"
+          }
+        ]
+      },
+      {
         "matcher": "Edit",
         "hooks": [
+          {
+            "type": "command",
+            "_comment": "Blocks Edit targeting credential paths and Edits that inject secret literals",
+            "command": "python3 /your/home/.claude/hooks/protect_secrets.py"
+          },
           {
             "type": "command",
             "_comment": "Blocks @latest in MCP server args when Claude edits a settings file",
@@ -37,8 +52,23 @@
         "hooks": [
           {
             "type": "command",
+            "_comment": "Blocks Write to credential paths and Writes containing secret literals",
+            "command": "python3 /your/home/.claude/hooks/protect_secrets.py"
+          },
+          {
+            "type": "command",
             "_comment": "Blocks @latest in MCP server args when Claude writes a settings file",
             "command": "python3 /your/home/.claude/hooks/protect_mcp_config.py"
+          }
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Blocks MultiEdit targeting credential paths or injecting secret literals",
+            "command": "python3 /your/home/.claude/hooks/protect_secrets.py"
           }
         ]
       }
@@ -49,7 +79,57 @@
         "hooks": [
           {
             "type": "command",
-            "_comment": "Scrubs secrets from tool output before Claude sees it",
+            "_comment": "Scrubs secrets from Bash output before Claude sees it",
+            "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Scrubs secrets from file content returned by Read",
+            "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Scrubs secrets from Edit confirmation output",
+            "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Scrubs secrets from Write confirmation output",
+            "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Scrubs secrets from fetched web content (note: JWT pattern may false-positive on legitimate API tokens)",
+            "command": "python3 /your/home/.claude/hooks/protect_output.py"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "_comment": "Scrubs secrets from any MCP tool response",
             "command": "python3 /your/home/.claude/hooks/protect_output.py"
           }
         ]
