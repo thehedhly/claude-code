@@ -1,8 +1,14 @@
 # Claude Code — Security & Best Practices Setup
 
-A reference implementation for setting up Claude Code securely, following Anthropic's guidelines. Contains pre-built security hooks, settings templates, and detailed documentation.
+Claude Code is Anthropic's AI coding assistant. It reads your files, edits your code, and runs commands on your machine. That's powerful, and it's also where things can go wrong:
 
-> **Platform note:** This setup was tested on **macOS**. It should work on Linux with minor adjustments — see [Platform differences](#platform-differences) below. Windows (WSL2) is untested.
+- It might read files it shouldn't — the private keys you use to log into servers, or your cloud credentials.
+- It might run commands you didn't mean — delete files, push broken code, wipe a disk.
+- It might be tricked by something it read — a web page or document that quietly tells it to do things you didn't ask for.
+
+This repo is a working setup that catches those problems before they happen. You install it once; it runs quietly in the background and steps in when something risky is about to happen, so you get to decide instead of finding out after the fact. It's for anyone using Claude Code on a real machine — with credentials, source code, or anything you'd be unhappy to lose.
+
+> **Platform note:** Tested on **macOS**. Works on Linux with minor adjustments — see [Platform differences](#platform-differences) below. Windows (WSL2) is untested.
 
 ## What's Included
 
