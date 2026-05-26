@@ -155,9 +155,7 @@ For `Write`/`Edit`/`MultiEdit`, the `content` / `new_string` is also scanned aga
 
 The same script is wired across every tool that returns text Claude will ingest. The `Bash`-only wiring used in earlier versions missed file content read via `Read`, content fetched via `WebFetch`, and any output from MCP servers — all of which are common credential-leak surfaces.
 
-> ⚠️ The JWT-like pattern (`eyJ...`) may false-positive against legitimate API responses returned by MCP servers or `WebFetch`. If the noise outweighs the value, narrow that pattern in `protect_output.py` or remove the `WebFetch` / `mcp__.*` matchers from `settings.json`. Issue #5 tracks switching to redaction-in-place to eliminate the all-or-nothing failure mode.
-
-Scans the full tool output text before Claude's context receives it. Blocks on:
+Scans the full tool output text before Claude's context receives it. Detects:
 
 | Pattern | What it detects |
 |---------|----------------|
@@ -170,7 +168,19 @@ Scans the full tool output text before Claude's context receives it. Blocks on:
 | `sk_live_[A-Za-z0-9]{10,}` | Stripe live key |
 | `eyJ…[three-segment base64]` | JWT-like token |
 
-The entire output is blocked when a match is found — Claude sees the block reason, not the secret.
+#### Mode control
+
+Set via the `PROTECT_OUTPUT_MODE` environment variable (or the `PROTECT_OUTPUT_STRICT` shorthand):
+
+| Mode | Env var | Behavior |
+|------|---------|----------|
+| `warn` (default) | _(unset)_ or `PROTECT_OUTPUT_MODE=warn` | On match: log the detection and emit `{"decision": "warn"}`. Claude still receives the original output; the user sees a warning. Keeps Claude functional when output incidentally contains a secret-like pattern (old commit message, log file, etc.). |
+| `block` | `PROTECT_OUTPUT_MODE=block` or `PROTECT_OUTPUT_STRICT=1` | On match: block the entire output — Claude sees only the block reason. Use for high-security or automated environments where no false-negative is acceptable. |
+| `off` | `PROTECT_OUTPUT_MODE=off` | Disable scanning entirely. Use only for trusted debugging sessions. |
+
+**Trade-off:** `warn` mode avoids the "Claude can't see anything useful" failure mode that drove users to disable the hook, but it does not prevent Claude from reading a raw secret. If that risk is unacceptable, set `PROTECT_OUTPUT_STRICT=1` in your shell profile or in the `env` block of your `settings.json`.
+
+> ⚠️ The JWT-like pattern (`eyJ...`) may false-positive against legitimate API responses returned by MCP servers or `WebFetch`. If the noise outweighs the value, narrow that pattern in `protect_output.py` or remove the `WebFetch` / `mcp__.*` matchers from `settings.json`.
 
 ---
 
@@ -242,7 +252,7 @@ Example entry:
 {"ts": "2026-01-01T12:00:00+00:00", "event": "pretool_block", "details": {"reason": "BLOCKED: rm -rf", "command": "rm -rf /tmp"}}
 ```
 
-Event types: `pretool_block`, `posttool_block`. Logging failures are silently suppressed so they never interfere with enforcement.
+Event types: `pretool_block`, `posttool_block`, `posttool_redact`. Logging failures are silently suppressed so they never interfere with enforcement.
 
 ---
 
